@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mitt CRM - Kundhantering</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+    <div class="max-w-6xl mx-auto p-4 md:p-8">
+        
+        <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="users" class="text-blue-600"></i> Kundhantering
+                </h1>
+                <p class="text-slate-500 text-sm mt-1">Håll koll på dina kunder och anteckningar säkert i molnet.</p>
+            </div>
+            <button id="openSettingsBtn" class="p-2 hover:bg-slate-100 rounded-lg border border-slate-200 text-slate-600 flex items-center gap-2 text-sm font-medium transition">
+                <i data-lucide="settings" class="w-4 h-4"></i> Inställningar
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <div class="lg:col-span-1">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 sticky top-8">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-900">
+                        <i data-lucide="user-plus" class="w-5 h-5 text-blue-600"></i> Lägg till kund
+                    </h2>
+                    <form id="addCustomerForm" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 uppercase mb-1">Namn *</label>
+                            <input type="text" id="custName" required placeholder="Anna Andersson" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 uppercase mb-1">Företag</label>
+                            <input type="text" id="custCompany" placeholder="Företag AB" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 uppercase mb-1">E-post</label>
+                            <input type="email" id="custEmail" placeholder="anna@foretag.se" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 uppercase mb-1">Telefon</label>
+                            <input type="tel" id="custPhone" placeholder="070-123 45 67" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 uppercase mb-1">Status</label>
+                            <select id="custStatus" class="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white">
+                                <option value="Aktiv">Aktiv</option>
+                                <option value="Prospekt">Prospekt</option>
+                                <option value="Inaktiv">Inaktiv</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm shadow-sm">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Spara kund
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex gap-4">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" id="searchInput" placeholder="Sök på namn eller företag..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                    </div>
+                </div>
+
+                <div id="customerList" class="space-y-4">
+                    </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 class="font-semibold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="database" class="w-5 h-5 text-blue-600"></i> Supabase-inställningar
+                </h3>
+                <button id="closeSettingsBtn" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <p class="text-xs text-slate-500">Klistra in dina nycklar från Supabase för att spara din data i databasen.</p>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 uppercase mb-1">Supabase URL</label>
+                    <input type="text" id="supabaseUrlInput" placeholder="https://xxxx.supabase.co" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 uppercase mb-1">Supabase Anon Key</label>
+                    <textarea id="supabaseKeyInput" rows="3" placeholder="eyJhbGciOi..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono"></textarea>
+                </div>
+            </div>
+
+            <div class="flex gap-2 justify-end pt-2">
+                <button id="saveSettingsBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition w-full">
+                    Spara inställningar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tillstånd och Supabase-klient
+        let supabaseClient = null;
+        let customers = [];
+        let notes = [];
+
+        // Hämta sparade nycklar från localStorage
+        const savedUrl = localStorage.getItem('crm_supabase_url');
+        const savedKey = localStorage.getItem('crm_supabase_key');
+
+        if (savedUrl && savedKey) {
+            initSupabase(savedUrl, savedKey);
+        } else {
+            loadLocalData();
+        }
+
+        function initSupabase(url, key) {
+            try {
+                supabaseClient = supabase.createClient(url, key);
+                document.getElementById('supabaseUrlInput').value = url;
+                document.getElementById('supabaseKeyInput').value = key;
+                fetchFromSupabase();
+            } catch (e) {
+                console.error('Fel vid initiering av Supabase:', e);
+                loadLocalData();
+            }
+        }
+
+        // Hämta data från Supabase
+        async function fetchFromSupabase() {
+            if (!supabaseClient) return;
+
+            const { data: custData, error: custErr } = await supabaseClient.from('customers').select('*').order('created_at', { ascending: false });
+            const { data: noteData, error: noteErr } = await supabaseClient.from('notes').select('*').order('created_at', { ascending: true });
+
+            if (!custErr && custData) customers = custData;
+            if (!noteErr && noteData) notes = noteData;
+
+            renderCustomers();
+        }
+
+        // Lokal fallback
+        function loadLocalData() {
+            customers = JSON.parse(localStorage.getItem('crm_customers') || '[]');
+            notes = JSON.parse(localStorage.getItem('crm_notes') || '[]');
+            renderCustomers();
+        }
+
+        function saveLocalData() {
+            localStorage.setItem('crm_customers', JSON.stringify(customers));
+            localStorage.setItem('crm_notes', JSON.stringify(notes));
+        }
+
+        // Rendera kunder
+        function renderCustomers(filterText = '') {
+            const list = document.getElementById('customerList');
+            list.innerHTML = '';
+
+            const filtered = customers.filter(c => 
+                c.name.toLowerCase().includes(filterText.toLowerCase()) || 
+                (c.company && c.company.toLowerCase().includes(filterText.toLowerCase()))
+            );
+
+            if (filtered.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-white p-8 rounded-xl text-center text-slate-400 border border-slate-100">
+                        <i data-lucide="inbox" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                        <p class="text-sm">Inga kunder hittades.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            filtered.forEach(c => {
+                const customerNotes = notes.filter(n => n.customer_id === c.id);
+                const card = document.createElement('div');
+                card.className = "bg-white p-6 rounded-xl shadow-sm border border-slate-100 space-y-4";
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-slate-900 text-lg">${escapeHtml(c.name)}</h3>
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full ${getStatusBadge(c.status)}">${c.status || 'Aktiv'}</span>
+                            </div>
+                            ${c.company ? `<p class="text-sm font-medium text-slate-600">${escapeHtml(c.company)}</p>` : ''}
+                        </div>
+                        <button onclick="deleteCustomer('${c.id}')" class="text-slate-400 hover:text-red-600 transition p-1">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-slate-500 pt-2 border-t border-slate-50">
+                        ${c.email ? `<div class="flex items-center gap-2"><i data-lucide="mail" class="w-3.5 h-3.5"></i> ${escapeHtml(c.email)}</div>` : ''}
+                        ${c.phone ? `<div class="flex items-center gap-2"><i data-lucide="phone" class="w-3.5 h-3.5"></i> ${escapeHtml(c.phone)}</div>` : ''}
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 space-y-2">
+                        <h4 class="text-xs font-semibold text-slate-500 uppercase flex items-center gap-1">
+                            <i data-lucide="file-text" class="w-3.5 h-3.5"></i> Anteckningar (${customerNotes.length})
+                        </h4>
+                        
+                        <div class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                            ${customerNotes.map(n => `
+                                <div class="bg-slate-50 p-2 rounded border border-slate-100 text-xs text-slate-700 flex justify-between items-start">
+                                    <span>${escapeHtml(n.content)}</span>
+                                    <button onclick="deleteNote('${n.id}')" class="text-slate-300 hover:text-red-500 ml-2"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div class="flex gap-2 pt-1">
+                            <input type="text" id="noteInput-${c.id}" placeholder="Skriv anteckning..." class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <button onclick="addNote('${c.id}')" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition">Lägg till</button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Hjälpfunktioner
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'Aktiv': return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                case 'Prospekt': return 'bg-amber-50 text-amber-700 border border-amber-200';
+                case 'Inaktiv': return 'bg-slate-100 text-slate-600 border border-slate-200';
+                default: return 'bg-slate-100 text-slate-600';
+            }
+        }
+
+        function escapeHtml(str) {
+            return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        // Lägg till kund
+        document.getElementById('addCustomerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newCust = {
+                id: crypto.randomUUID(),
+                name: document.getElementById('custName').value,
+                company: document.getElementById('custCompany').value,
+                email: document.getElementById('custEmail').value,
+                phone: document.getElementById('custPhone').value,
+                status: document.getElementById('custStatus').value,
+                created_at: new Date().toISOString()
+            };
+
+            if (supabaseClient) {
+                const { error } = await supabaseClient.from('customers').insert([newCust]);
+                if (!error) fetchFromSupabase();
+            } else {
+                customers.unshift(newCust);
+                saveLocalData();
+                renderCustomers();
+            }
+
+            e.target.reset();
+        });
+
+        // Ta bort kund
+        async function deleteCustomer(id) {
+            if (!confirm('Vill du verkligen ta bort denna kund?')) return;
+
+            if (supabaseClient) {
+                await supabaseClient.from('customers').delete().eq('id', id);
+                fetchFromSupabase();
+            } else {
+                customers = customers.filter(c => c.id !== id);
+                notes = notes.filter(n => n.customer_id !== id);
+                saveLocalData();
+                renderCustomers();
+            }
+        }
+
+        // Lägg till anteckning
+        async function addNote(customerId) {
+            const input = document.getElementById(`noteInput-${customerId}`);
+            const content = input.value.trim();
+            if (!content) return;
+
+            const newNote = {
+                id: crypto.randomUUID(),
+                customer_id: customerId,
+                content: content,
+                created_at: new Date().toISOString()
+            };
+
+            if (supabaseClient) {
+                const { error } = await supabaseClient.from('notes').insert([newNote]);
+                if (!error) fetchFromSupabase();
+            } else {
+                notes.push(newNote);
+                saveLocalData();
+                renderCustomers();
+            }
+            input.value = '';
+        }
+
+        // Ta bort anteckning
+        async function deleteNote(id) {
+            if (supabaseClient) {
+                await supabaseClient.from('notes').delete().eq('id', id);
+                fetchFromSupabase();
+            } else {
+                notes = notes.filter(n => n.id !== id);
+                saveLocalData();
+                renderCustomers();
+            }
+        }
+
+        // Sökfilter
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            renderCustomers(e.target.value);
+        });
+
+        // Hantera Inställningsmodal
+        const modal = document.getElementById('settingsModal');
+        document.getElementById('openSettingsBtn').addEventListener('click', () => modal.classList.remove('hidden'));
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => modal.classList.add('hidden'));
+
+        document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+            const url = document.getElementById('supabaseUrlInput').value.trim();
+            const key = document.getElementById('supabaseKeyInput').value.trim();
+
+            if (url && key) {
+                localStorage.setItem('crm_supabase_url', url);
+                localStorage.setItem('crm_supabase_key', key);
+                initSupabase(url, key);
+                modal.classList.add('hidden');
+                alert('Inställningar sparade!');
+            } else {
+                alert('Vänligen fyll i både URL och Key.');
+            }
+        });
+
+        // Starta ikoner
+        lucide.createIcons();
+    </script>
+</body>
+</html>
