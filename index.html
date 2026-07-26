@@ -224,8 +224,8 @@
     </div>
 
     <script>
-        // HÅRDKODADE CREDENTIALS
-        const DEFAULT_URL = 'https://mblldnfeknrrkunkbxjy.supabase.co';
+        // KORREKTA NYCKLAR FRÅN DITT SUPABASE-PROJEKT
+        const DEFAULT_URL = 'https://mblldnfeknrk1bkbxjy.supabase.co';
         const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ibGxkbmZla25ycmsxYmtieGp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5ODMzNTIsImV4cCI6MjEwMDU1OTM1Mn0.LNG5QDtywu_UQT985m5TOtP5OR_EIbg72KMSlI8xJHI';
 
         let supabaseClient = null;
@@ -256,8 +256,11 @@
 
         async function fetchFromSupabase() {
             if (!supabaseClient) return;
-            const { data: custData } = await supabaseClient.from('customers').select('*').order('created_at', { ascending: false });
-            const { data: noteData } = await supabaseClient.from('notes').select('*').order('created_at', { ascending: true });
+            const { data: custData, error: custErr } = await supabaseClient.from('customers').select('*').order('created_at', { ascending: false });
+            const { data: noteData, error: noteErr } = await supabaseClient.from('notes').select('*').order('created_at', { ascending: true });
+
+            if (custErr) console.error("Kunder fel:", custErr);
+            if (noteErr) console.error("Anteckningar fel:", noteErr);
 
             if (custData) customers = custData;
             if (noteData) notes = noteData;
@@ -407,11 +410,13 @@
             };
 
             if (id) {
-                await supabaseClient.from('customers').update(custData).eq('id', id);
+                const { error } = await supabaseClient.from('customers').update(custData).eq('id', id);
+                if(error) alert('Fel vid uppdatering: ' + error.message);
             } else {
                 custData.id = crypto.randomUUID();
                 custData.created_at = new Date().toISOString();
-                await supabaseClient.from('customers').insert([custData]);
+                const { error } = await supabaseClient.from('customers').insert([custData]);
+                if(error) alert('Fel vid sparande: ' + error.message);
             }
 
             custModal.classList.add('hidden');
